@@ -67,10 +67,7 @@ program.command('loop')
     console.log({ packageName, versionName, projectDir, apkName })
     console.log('_____________________________')
 
-    if (fs.existsSync(projectDir)) {
-      info(`${projectDir} exists, skip to building loop`)
-      loop()
-    } else {
+    if (!fs.existsSync(projectDir)) {
       info('decode apk')
       const { stderr, stdout } = await execPromise(`java -jar ${process.env.APKTOOL_PATH} d "${apkPath}" -o "${projectDir}" --only-main-classes`)
       if (stderr) {
@@ -79,10 +76,10 @@ program.command('loop')
       }
 
       info('init git project')
-      const gitState = await execPromise(`cd ${projectDir} && git init && echo '/build\n/dist' > ${projectDir}/.gitignore && git add . && git commit -m "init project"`, { maxBuffer: 1024 * 500 })
+      const gitState = await execPromise(`cd ${projectDir} && git init && echo '/build\n/dist' > ${projectDir}/.gitignore && git add . && git commit -m "init project"`, { maxBuffer: 5 * 1024 * 1024 })
       if (gitState.stderr) {
-        console.error(gitState.error)
-        return
+        console.error(gitState.stderr)
+        // return
       }
 
       info('prepare for mitm')
@@ -100,7 +97,10 @@ program.command('loop')
 
       info('open in sublime text')
       await execPromise(`subl ${projectDir}`)
+
     }
+    info('build loop')
+    loop()
   })
 
 program
@@ -118,21 +118,34 @@ const loop = () => {
     output: process.stdout
   });
 
-  rl.question("Please enter 'yes' or 'no': ", async (input) => {
+  rl.question("Build now? ('yes' or 'no'): ", async (input) => {
     input = input.trim().toLowerCase();
-    const pwd = await execPromise(`pwd`)
 
     if (input.startsWith('y')) {
-      const buildState = await execPromise(`
-              java -jar ${process.env.APKTOOL_PATH} b "${projectDir}" --use-aapt2;
-              java -jar ${process.env.UBER_APK_SIGNER_PATH} -a "$${distPath}" --allowResign --overwrite;
-              adb install -r "$${distPath}";
-            `)
+      info('building apk')
+      const buildState = await execPromise(`java -jar ${process.env.APKTOOL_PATH} b "${projectDir}" --use-aapt2`)
+
       if (buildState.error) {
         console.error(buildState.error)
-      } else {
-        success('apk installed')
+        loop()
       }
+
+      info('signing apk')
+      const signState = await execPromise(`java -jar ${process.env.UBER_APK_SIGNER_PATH} -a "${distPath}" --allowResign --overwrite`)
+      if (signState.error) {
+        console.error(signState.error)
+        loop()
+      }
+
+      info('installing apk')
+      const installState = await execPromise(`adb install -r "${distPath}"`)
+
+      if (installState.error) {
+        console.error(installState.error)
+        loop()
+      }
+
+      success('apk installed')
       loop()
     }
     if (input.startsWith('n')) {
@@ -143,6 +156,9 @@ const loop = () => {
                     subl readme.md
                     git --git-dir "${projectDir}/.git" show --pretty="" > "${packageName}/${versionName}.patch"
               `)
+    }
+    if (input.startsWith('q')) {
+      return
     }
   })
 }
