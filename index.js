@@ -9,7 +9,8 @@ import util from 'util'
 
 const {
   UBER_APK_SIGNER_PATH,
-  APKTOOL_PATH
+  APKTOOL_PATH,
+  OUTPUT_PATCH_PATH
 } = process.env
 
 const info = (msg) => console.log(chalk.blue(msg))
@@ -108,7 +109,8 @@ program
   .action(() => {
     console.log({
       APKTOOL_PATH,
-      UBER_APK_SIGNER_PATH
+      UBER_APK_SIGNER_PATH,
+      OUTPUT_PATCH_PATH
     })
   })
 
@@ -150,12 +152,13 @@ const loop = () => {
     }
     if (input.startsWith('n')) {
       await execPromise(`
-                    git --git-dir "${projectDir}/.git" add .
-                    git --git-dir "${projectDir}/.git" commit -m "modded ${packageName} ${versionName}"
-                    subl .
-                    subl readme.md
-                    git --git-dir "${projectDir}/.git" show --pretty="" > "${packageName}/${versionName}.patch"
+                    cd "${projectDir}"
+                    git add .
+                    git commit -m "modded ${packageName} ${versionName}"
+                    mkdir -p "${OUTPUT_PATCH_PATH}/${packageName}"
+                    git show --pretty="" > "${OUTPUT_PATCH_PATH}/${packageName}/${versionName}.patch"
               `)
+      return
     }
     if (input.startsWith('q')) {
       return
