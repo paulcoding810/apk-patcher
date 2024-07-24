@@ -54,7 +54,7 @@ program.command('loop')
       return 1;
     }
 
-    const regex = /name='([\w.]+)'.*versionName='([\d.]+)'/;
+    const regex = /name='(.*?)'.*versionName='(.*?)'/
     const match = stdout.match(regex);
 
     if (match) {
