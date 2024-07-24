@@ -4,7 +4,7 @@ import { exec } from 'child_process'
 import { Command } from 'commander'
 import fs from 'fs'
 import path from 'path'
-import readline from 'readline'
+import readline from 'node:readline/promises'
 import util from 'util'
 
 const {
@@ -75,7 +75,7 @@ program.command('loop')
       info('decode apk')
       const { stderr, stdout } = await execPromise(`java -jar ${process.env.APKTOOL_PATH} d "${apkPath}" -o "${projectDir}" --only-main-classes`)
       if (stderr) {
-        error(error)
+        error(stderr)
         return 3
       }
 
@@ -116,13 +116,14 @@ program
     })
   })
 
-const loop = () => {
+const loop = async () => {
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
   });
 
-  rl.question("Build now? ('yes' or 'no'): ", async (input) => {
+  while (true) {
+    let input = await rl.question("Build now? ('yes' or 'no'): ")
     input = input.trim().toLowerCase();
 
     if (input.startsWith('y')) {
@@ -131,14 +132,12 @@ const loop = () => {
 
       if (buildState.error) {
         error(buildState.error)
-        loop()
       }
 
       info('signing apk')
       const signState = await execPromise(`java -jar ${process.env.UBER_APK_SIGNER_PATH} -a "${distPath}" --allowResign --overwrite`)
       if (signState.error) {
         error(signState.error)
-        loop()
       }
 
       info('installing apk')
@@ -146,13 +145,11 @@ const loop = () => {
 
       if (installState.error) {
         error(installState.error)
-        loop()
       }
 
-      success('apk installed')
-      loop()
+      success('apk installed\n')
     }
-    if (input.startsWith('n')) {
+    else if (input.startsWith('n')) {
       await execPromise(`
                     cd "${projectDir}"
                     git add .
@@ -161,11 +158,10 @@ const loop = () => {
                     git show --pretty="" > "${OUTPUT_PATCH_PATH}/${packageName}/${versionName}.patch"
               `)
       return
+    } else if (input.startsWith('q')) {
+      break
     }
-    if (input.startsWith('q')) {
-      return
-    }
-  })
+  }
 }
 
 
