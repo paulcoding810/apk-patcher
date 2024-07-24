@@ -13,8 +13,11 @@ const {
   OUTPUT_PATCH_PATH
 } = process.env
 
+const log = console.log
 const info = (msg) => console.log(chalk.blue(msg))
 const success = (msg) => console.log(chalk.green(msg))
+const error = (msg) => console.log(chalk.red(msg))
+
 const execPromise = util.promisify(exec)
 
 const program = new Command();
@@ -39,7 +42,7 @@ program.command('loop')
 
     // check if path exists
     if (!fs.existsSync(apkPath)) {
-      console.error(`${apkPath} does not exist!`)
+      error(`${apkPath} does not exist!`)
       return 1
     }
 
@@ -47,7 +50,7 @@ program.command('loop')
     const { stdout, stderr } = await execPromise(`aapt dump badging "${apkPath}"`);
 
     if (stderr) {
-      console.error(stderr);
+      error(stderr);
       return 1;
     }
 
@@ -61,38 +64,37 @@ program.command('loop')
       apkName = `${path.basename(apkPath)}`
       distPath = `${projectDir}/dist/${apkName}`
     } else {
-      console.error('Can not parse apk info')
+      error('Can not parse apk info', match, stdout)
       return 2
     }
 
-    console.log({ packageName, versionName, projectDir, apkName })
-    console.log('_____________________________')
+    log({ packageName, versionName, projectDir, apkName })
+    log('_____________________________')
 
     if (!fs.existsSync(projectDir)) {
       info('decode apk')
       const { stderr, stdout } = await execPromise(`java -jar ${process.env.APKTOOL_PATH} d "${apkPath}" -o "${projectDir}" --only-main-classes`)
       if (stderr) {
-        console.error(error)
+        error(error)
         return 3
       }
 
       info('init git project')
       const gitState = await execPromise(`cd ${projectDir} && git init && echo '/build\n/dist' > ${projectDir}/.gitignore && git add . && git commit -m "init project"`, { maxBuffer: 5 * 1024 * 1024 })
       if (gitState.stderr) {
-        console.error(gitState.stderr)
+        error(gitState.stderr)
         // return
       }
 
       info('prepare for mitm')
       try {
-
         await observeListr(applyPatches(projectDir)).forEach((line) =>
-          console.log(line),
+          log(line),
         );
         success("\nSuccessfully applied MITM patches!")
         await execPromise(`cd ${projectDir} &&  git add . && git commit -m "mitm"`)
       } catch (error) {
-        console.error(error)
+        error(error)
         return
       }
 
@@ -107,7 +109,7 @@ program.command('loop')
 program
   .command('env')
   .action(() => {
-    console.log({
+    log({
       APKTOOL_PATH,
       UBER_APK_SIGNER_PATH,
       OUTPUT_PATCH_PATH
@@ -128,14 +130,14 @@ const loop = () => {
       const buildState = await execPromise(`java -jar ${process.env.APKTOOL_PATH} b "${projectDir}" --use-aapt2`)
 
       if (buildState.error) {
-        console.error(buildState.error)
+        error(buildState.error)
         loop()
       }
 
       info('signing apk')
       const signState = await execPromise(`java -jar ${process.env.UBER_APK_SIGNER_PATH} -a "${distPath}" --allowResign --overwrite`)
       if (signState.error) {
-        console.error(signState.error)
+        error(signState.error)
         loop()
       }
 
@@ -143,7 +145,7 @@ const loop = () => {
       const installState = await execPromise(`adb install -r "${distPath}"`)
 
       if (installState.error) {
-        console.error(installState.error)
+        error(installState.error)
         loop()
       }
 
