@@ -80,7 +80,7 @@ program.command('loop')
       }
 
       info('init git project')
-      const gitState = await execPromise(`cd ${projectDir} && git init && echo '/build\n/dist' > ${projectDir}/.gitignore && git add . && git commit -m "init project"`, { maxBuffer: 5 * 1024 * 1024 })
+      const gitState = await execPromise(`cd ${projectDir} && git init && echo '/build\n/dist\n.DS_Store' > ${projectDir}/.gitignore && git add . && git commit -m "init project"`, { maxBuffer: 5 * 1024 * 1024 })
       if (gitState.stderr) {
         error(gitState.stderr)
         // return
