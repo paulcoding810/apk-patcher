@@ -157,6 +157,9 @@ const loop = async () => {
                     mkdir -p "${OUTPUT_PATCH_PATH}/${packageName}"
                     git show --pretty="" > "${OUTPUT_PATCH_PATH}/${packageName}/${versionName}.patch"
               `)
+      info(`patch file: ${OUTPUT_PATCH_PATH}/${packageName}/${versionName}.patch`)
+      success('finished, exiting...\n')
+      process.exit()
       return
     } else if (input.startsWith('q')) {
       break
