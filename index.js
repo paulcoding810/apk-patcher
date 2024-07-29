@@ -9,6 +9,7 @@ import util from 'util'
 
 const {
   UBER_APK_SIGNER_PATH,
+  APKEDITOR_PATH,
   APKTOOL_PATH,
   OUTPUT_PATCH_PATH
 } = process.env
@@ -32,6 +33,20 @@ var versionName
 var apkName
 var projectDir
 var distPath
+
+program.command('merge')
+  .description('Merging slit apk')
+  .argument('<string>', 'path to apk')
+  .action(async (str, options) => {
+    const { stderr, stdout } = await execPromise(`java -jar ${APKEDITOR_PATH} m -i "${str}"`)
+    if (stderr) {
+      error(stderr);
+      return 1;
+    }
+    success("apk merged")
+    process.exit()
+  })
+
 
 program.command('loop')
   .description('Building loop')
@@ -111,6 +126,7 @@ program
   .action(() => {
     log({
       APKTOOL_PATH,
+      APKEDITOR_PATH,
       UBER_APK_SIGNER_PATH,
       OUTPUT_PATCH_PATH
     })
@@ -160,7 +176,6 @@ const loop = async () => {
       info(`patch file: ${OUTPUT_PATCH_PATH}/${packageName}/${versionName}.patch`)
       success('finished, exiting...\n')
       process.exit()
-      return
     } else if (input.startsWith('q')) {
       break
     }
