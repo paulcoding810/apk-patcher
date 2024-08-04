@@ -11,7 +11,8 @@ const {
   UBER_APK_SIGNER_PATH,
   APKEDITOR_PATH,
   APKTOOL_PATH,
-  OUTPUT_PATCH_PATH
+  OUTPUT_PATCH_PATH,
+  RES_SIMPLIFY_PATH,
 } = process.env
 
 const log = console.log
@@ -44,6 +45,23 @@ program.command('merge')
       return 1;
     }
     success("apk merged")
+    process.exit()
+  })
+
+  /**
+   * deobfuscator resources
+   * https://github.com/MrIkso/ResSimplify
+   */
+program.command('deobf')
+  .description('Deobfuscator resources')
+  .argument('<string>', 'path to apk')
+  .action(async (str, options) => {
+    const { stderr, stdout } = await execPromise(`java -jar ${RES_SIMPLIFY_PATH} --in "${str}" --out "${str}"`)
+    if (stderr) {
+      error(stderr);
+      return 1;
+    }
+    success("Deobfuscated")
     process.exit()
   })
 
