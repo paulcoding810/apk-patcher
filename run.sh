@@ -1,3 +1,3 @@
 #!/bin/sh
 
-node --env-file=.env index.js loop $1
+node --env-file=.env index.js loop "$1"
