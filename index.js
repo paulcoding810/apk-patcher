@@ -116,9 +116,11 @@ program.command('loop')
       info('open in sublime text')
       await execPromise(`subl ${projectDir}`)
 
+      info('perform first build & install')
+      await buildAndInstall()
     }
     info('build loop')
-    loop()
+    await loop()
   })
 
 program
@@ -132,6 +134,30 @@ program
     })
   })
 
+async function buildAndInstall() {
+  info('building apk')
+  const buildState = await execPromise(`java -jar ${process.env.APKTOOL_PATH} b "${projectDir}" --use-aapt2`)
+
+  if (buildState.error) {
+    error(buildState.error)
+  }
+
+  info('signing apk')
+  const signState = await execPromise(`java -jar ${process.env.UBER_APK_SIGNER_PATH} -a "${distPath}" --allowResign --overwrite`)
+  if (signState.error) {
+    error(signState.error)
+  }
+
+  info('installing apk')
+  const installState = await execPromise(`adb install -r "${distPath}"`)
+
+  if (installState.error) {
+    error(installState.error)
+  }
+
+  success('apk installed\n')
+}
+
 const loop = async () => {
   const rl = readline.createInterface({
     input: process.stdin,
@@ -143,27 +169,7 @@ const loop = async () => {
     input = input.trim().toLowerCase();
 
     if (input.startsWith('y')) {
-      info('building apk')
-      const buildState = await execPromise(`java -jar ${process.env.APKTOOL_PATH} b "${projectDir}" --use-aapt2`)
-
-      if (buildState.error) {
-        error(buildState.error)
-      }
-
-      info('signing apk')
-      const signState = await execPromise(`java -jar ${process.env.UBER_APK_SIGNER_PATH} -a "${distPath}" --allowResign --overwrite`)
-      if (signState.error) {
-        error(signState.error)
-      }
-
-      info('installing apk')
-      const installState = await execPromise(`adb install -r "${distPath}"`)
-
-      if (installState.error) {
-        error(installState.error)
-      }
-
-      success('apk installed\n')
+      await buildAndInstall()
     }
     else if (input.startsWith('n')) {
       await execPromise(`
