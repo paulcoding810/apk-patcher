@@ -1,11 +1,11 @@
 import { applyPatches, observeListr } from "apk-mitm";
 import chalk from "chalk";
-import { exec } from "child_process";
 import { Command } from "commander";
+import { execa } from "execa";
 import fs from "fs";
-import path from "path";
+import { Listr } from "listr2";
 import readline from "node:readline/promises";
-import util from "util";
+import path from "path";
 
 const {
   UBER_APK_SIGNER_PATH,
@@ -18,8 +18,6 @@ const log = console.log;
 const info = (msg) => console.log(chalk.blue(msg));
 const success = (msg) => console.log(chalk.green(msg));
 const error = (msg) => console.log(chalk.red(msg));
-
-const execPromise = util.promisify(exec);
 
 const program = new Command();
 
@@ -38,100 +36,106 @@ program
   .command("merge")
   .description("Merging slit apk")
   .argument("<string>", "path to apk")
-  .action(async (str, options) => {
-    const { stderr, stdout } = await execPromise(
-      `java -jar ${APKEDITOR_PATH} m -i "${str}"`
-    );
-    if (stderr) {
-      error(stderr);
-      return 1;
+  .action(async (str) => {
+    try {
+      await execa("java", ["-jar", APKEDITOR_PATH, "m", "-i", str]);
+      success("apk merged");
+      process.exit();
+    } catch (err) {
+      error(err.message);
+      process.exit(1);
     }
-    success("apk merged");
-    process.exit();
   });
 
 program
   .command("loop")
   .description("Building loop")
   .argument("<string>", "path to apk")
-  .action(async (str, options) => {
+  .action(async (str) => {
     const apkPath = str;
 
-    // check if path exists
     if (!fs.existsSync(apkPath)) {
       error(`${apkPath} does not exist!`);
       return 1;
     }
 
     info("get package info");
-    const { stdout, stderr } = await execPromise(
-      `aapt dump badging "${apkPath}"`
-    );
+    try {
+      const { stdout } = await execa("aapt", ["dump", "badging", apkPath]);
+      const regex = /name='(.*?)'.*versionName='(.*?)'/;
+      const match = stdout.match(regex);
 
-    if (stderr) {
-      error(stderr);
+      if (match) {
+        packageName = match[1];
+        versionName = match[2];
+        projectDir = `${path.dirname(apkPath)}/${packageName}`;
+        apkName = `${path.basename(apkPath)}`;
+        distPath = `${projectDir}/dist/${apkName}`;
+      } else {
+        throw new Error("Can not parse apk info");
+      }
+
+      log({ packageName, versionName, projectDir, apkName });
+      log("_____________________________");
+
+      if (!fs.existsSync(projectDir)) {
+        const tasks = new Listr([
+          {
+            title: "Decode APK",
+            task: () =>
+              execa("java", [
+                "-jar",
+                APKTOOL_PATH,
+                "d",
+                apkPath,
+                "-o",
+                projectDir,
+                "--only-main-classes",
+              ]),
+          },
+          {
+            title: "Init git project",
+            task: async () => {
+              await execa("git", ["init"], { cwd: projectDir });
+              await fs.promises.writeFile(
+                `${projectDir}/.gitignore`,
+                "/build\n/dist\n.DS_Store"
+              );
+              await execa("git", ["add", "."], { cwd: projectDir });
+              await execa("git", ["commit", "-m", "init project"], {
+                cwd: projectDir,
+              });
+            },
+          },
+          {
+            title: "Prepare for MITM",
+            task: async () => {
+              await observeListr(applyPatches(projectDir)).forEach((line) =>
+                log(line)
+              );
+              await execa("git", ["add", "."], { cwd: projectDir });
+              await execa("git", ["commit", "-m", "mitm"], { cwd: projectDir });
+            },
+          },
+          {
+            title: "Open in Sublime Text",
+            task: () => execa("subl", [projectDir]),
+          },
+          {
+            title: "Perform first build & install",
+            task: () => buildAndInstall(),
+          },
+        ]);
+
+        await tasks.run();
+      }
+
+      info("build loop");
+      await loop();
+    } catch (err) {
+      error(err.message);
       return 1;
     }
-
-    const regex = /name='(.*?)'.*versionName='(.*?)'/;
-    const match = stdout.match(regex);
-
-    if (match) {
-      packageName = match[1];
-      versionName = match[2];
-      projectDir = `${path.dirname(apkPath)}/${packageName}`;
-      apkName = `${path.basename(apkPath)}`;
-      distPath = `${projectDir}/dist/${apkName}`;
-    } else {
-      error("Can not parse apk info", match, stdout);
-      return 2;
-    }
-
-    log({ packageName, versionName, projectDir, apkName });
-    log("_____________________________");
-
-    if (!fs.existsSync(projectDir)) {
-      info("decode apk");
-      const { stderr, stdout } = await execPromise(
-        `java -jar ${process.env.APKTOOL_PATH} d "${apkPath}" -o "${projectDir}" --only-main-classes`
-      );
-      if (stderr) {
-        error(stderr);
-        return 3;
-      }
-
-      info("init git project");
-      const gitState = await execPromise(
-        `cd ${projectDir} && git init && echo '/build\n/dist\n.DS_Store' > ${projectDir}/.gitignore && git add . && git commit -m "init project"`,
-        { maxBuffer: 5 * 1024 * 1024 }
-      );
-      if (gitState.stderr) {
-        error(gitState.stderr);
-        // return
-      }
-
-      info("prepare for mitm");
-      try {
-        await observeListr(applyPatches(projectDir)).forEach((line) =>
-          log(line)
-        );
-        success("\nSuccessfully applied MITM patches!");
-        await execPromise(
-          `cd ${projectDir} &&  git add . && git commit -m "mitm"`
-        );
-      } catch (error) {
-        error(error);
-        return;
-      }
-
-      info("open in sublime text");
-      await execPromise(`subl ${projectDir}`);
-
-      info("perform first build & install");
-      await buildAndInstall();
-    }
-    info("build loop");
-    await loop();
   });
 
 program.command("env").action(() => {
@@ -144,44 +148,36 @@ program.command("env").action(() => {
 });
 
 async function buildAndInstall() {
-  info("building apk");
-  const buildState = await execPromise(
-    `java -jar ${process.env.APKTOOL_PATH} b "${projectDir}" --use-aapt2`
-  );
+  const tasks = new Listr([
+    {
+      title: "Building APK",
+      task: () =>
+        execa("java", ["-jar", APKTOOL_PATH, "b", projectDir, "--use-aapt2"]),
+    },
+    {
+      title: "Signing APK",
+      task: () =>
+        execa("java", [
+          "-jar",
+          UBER_APK_SIGNER_PATH,
+          "-a",
+          distPath,
+          "--allowResign",
+          "--overwrite",
+        ]),
+    },
+    {
+      title: "Installing APK",
+      task: () => execa("adb", ["install", "-r", distPath]),
+    },
+    {
+      title: "Launching app",
+      task: () => execa("adb", ["shell", "monkey", "-p", packageName, "1"]),
+    },
+  ]);
 
-  if (buildState.error) {
-    error(buildState.error);
-    return;
-  }
-
-  info("signing apk");
-  const signState = await execPromise(
-    `java -jar ${process.env.UBER_APK_SIGNER_PATH} -a "${distPath}" --allowResign --overwrite`
-  );
-  if (signState.error) {
-    error(signState.error);
-    return;
-  }
-
-  info("installing apk");
-  const installState = await execPromise(`adb install -r "${distPath}"`);
-
-  if (installState.error) {
-    error(installState.error);
-    return;
-  }
-
-  // https://stackoverflow.com/questions/4567904/how-to-start-an-application-using-android-adb-tools#comment54583265_25398877
-  info("launching app");
-  const launchingState = await execPromise(
-    `adb shell monkey -p ${packageName} 1`
-  );
-  if (launchingState.error) {
-    error(launchingState.error);
-    return;
-  }
-
-  success("apk installed\n");
+  await tasks.run();
+  success("APK installed\n");
 }
 
 const loop = async () => {
@@ -197,13 +193,21 @@ const loop = async () => {
     if (input.startsWith("y")) {
       await buildAndInstall();
     } else if (input.startsWith("n")) {
-      await execPromise(`
-                    cd "${projectDir}"
-                    git add .
-                    git commit -m "modded ${packageName} ${versionName}"
-                    mkdir -p "${OUTPUT_PATCH_PATH}/${packageName}"
-                    git show --pretty="" > "${OUTPUT_PATCH_PATH}/${packageName}/${versionName}.patch"
-              `);
+      await execa("git", ["add", "."], { cwd: projectDir });
+      await execa(
+        "git",
+        ["commit", "-m", `modded ${packageName} ${versionName}`],
+        { cwd: projectDir }
+      );
+      await execa("mkdir", ["-p", `${OUTPUT_PATCH_PATH}/${packageName}`]);
+      await execa("git", ["show", "--pretty="], { cwd: projectDir }).then(
+        (result) =>
+          fs.promises.writeFile(
+            `${OUTPUT_PATCH_PATH}/${packageName}/${versionName}.patch`,
+            result.stdout
+          )
+      );
+
       info(
         `patch file: ${OUTPUT_PATCH_PATH}/${packageName}/${versionName}.patch`
       );

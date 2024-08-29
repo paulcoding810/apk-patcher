@@ -11,7 +11,9 @@
   "dependencies": {
     "apk-mitm": "^1.3.0",
     "chalk": "^5.3.0",
-    "commander": "^12.1.0"
+    "commander": "^12.1.0",
+    "execa": "^9.3.1",
+    "listr2": "^8.2.4"
   },
   "type": "module"
 }
