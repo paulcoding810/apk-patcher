@@ -140,12 +140,14 @@ async function buildAndInstall() {
 
   if (buildState.error) {
     error(buildState.error)
+    return
   }
 
   info('signing apk')
   const signState = await execPromise(`java -jar ${process.env.UBER_APK_SIGNER_PATH} -a "${distPath}" --allowResign --overwrite`)
   if (signState.error) {
     error(signState.error)
+    return
   }
 
   info('installing apk')
@@ -153,6 +155,15 @@ async function buildAndInstall() {
 
   if (installState.error) {
     error(installState.error)
+    return
+  }
+
+  // https://stackoverflow.com/questions/4567904/how-to-start-an-application-using-android-adb-tools#comment54583265_25398877
+  info('launching app')
+  const launchingState = await execPromise(`adb shell monkey -p ${packageName} 1`)
+  if (launchingState.error) {
+    error(launchingState.error)
+    return
   }
 
   success('apk installed\n')
