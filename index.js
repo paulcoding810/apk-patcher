@@ -167,12 +167,45 @@ async function buildAndInstall() {
         ]),
     },
     {
+      title: "Checking for connected devices",
+      task: async (ctx, task) => {
+        const { stdout } = await execa("adb", ["devices"]);
+        const devices = stdout
+          .split("\n")
+          .slice(1)
+          .filter((line) => line.trim() !== "")
+          .map((line) => line.split("\t")[0]);
+
+        if (devices.length === 0) {
+          throw new Error(
+            "No devices connected. Please connect a device and try again."
+          );
+        }
+
+        if (devices.length > 1) {
+          task.output = "Multiple devices detected. Using the first one.";
+        }
+
+        ctx.device = devices[0];
+      },
+    },
+    {
       title: "Installing APK",
-      task: () => execa("adb", ["install", "-r", distPath]),
+      task: (ctx) =>
+        execa("adb", ["-s", ctx.device, "install", "-r", distPath]),
     },
     {
       title: "Launching app",
-      task: () => execa("adb", ["shell", "monkey", "-p", packageName, "1"]),
+      task: (ctx) =>
+        execa("adb", [
+          "-s",
+          ctx.device,
+          "shell",
+          "monkey",
+          "-p",
+          packageName,
+          "1",
+        ]),
     },
   ]);
 
