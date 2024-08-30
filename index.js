@@ -1,11 +1,11 @@
 import { applyPatches, observeListr } from "apk-mitm";
-import chalk from "chalk";
 import { Command } from "commander";
 import { execa } from "execa";
 import fs from "fs";
 import { Listr } from "listr2";
 import readline from "node:readline/promises";
 import path from "path";
+import { error, info, log, success } from "./log.js";
 
 const {
   UBER_APK_SIGNER_PATH,
@@ -13,11 +13,6 @@ const {
   APKTOOL_PATH,
   OUTPUT_PATCH_PATH,
 } = process.env;
-
-const log = console.log;
-const info = (msg) => console.log(chalk.blue(msg));
-const success = (msg) => console.log(chalk.green(msg));
-const error = (msg) => console.log(chalk.red(msg));
 
 const program = new Command();
 
