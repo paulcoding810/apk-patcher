@@ -247,7 +247,7 @@ const loop = async () => {
       success("finished, exiting...\n");
       process.exit();
     } else if (input.startsWith("q")) {
-      break;
+      process.exit();
     }
   }
 };
