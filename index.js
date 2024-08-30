@@ -7,12 +7,23 @@ import readline from "node:readline/promises";
 import path from "path";
 import { error, info, log, success } from "./log.js";
 
+const CONFIG_PATH = path.join(process.cwd(), "config.json");
+
+let config;
+
+try {
+  config = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf8"));
+} catch (err) {
+  error(`Error reading config file: ${err.message}`);
+  process.exit(1);
+}
+
 const {
   UBER_APK_SIGNER_PATH,
   APKEDITOR_PATH,
   APKTOOL_PATH,
   OUTPUT_PATCH_PATH,
-} = process.env;
+} = config;
 
 const program = new Command();
 
@@ -26,6 +37,30 @@ var versionName;
 var apkName;
 var projectDir;
 var distPath;
+
+async function editConfig() {
+  try {
+    await execa("vim", [CONFIG_PATH], { stdio: "inherit" });
+
+    const updatedConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf8"));
+    Object.assign(config, updatedConfig);
+
+    success("Configuration updated successfully!");
+  } catch (error) {
+    error(`Error editing configuration: ${error.message}`);
+  }
+}
+
+program
+  .option("-e, --edit-config", "Edit configuration file")
+  .action(async () => {
+    try {
+      await editConfig();
+    } catch (err) {
+      error(err.message);
+      process.exit(1);
+    }
+  });
 
 program
   .command("merge")
@@ -133,14 +168,12 @@ program
     }
   });
 
-program.command("env").action(() => {
-  log({
-    APKTOOL_PATH,
-    APKEDITOR_PATH,
-    UBER_APK_SIGNER_PATH,
-    OUTPUT_PATCH_PATH,
+program
+  .command("config")
+  .description("Show current configuration")
+  .action(() => {
+    log(config);
   });
-});
 
 async function buildAndInstall() {
   const tasks = new Listr([
