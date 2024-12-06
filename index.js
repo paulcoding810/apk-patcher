@@ -30,7 +30,7 @@ const program = new Command();
 program
   .name("apk patcher")
   .description("CLI for patching apk")
-  .version("1.0.1");
+  .version("1.0.2");
 
 var packageName;
 var versionName;
