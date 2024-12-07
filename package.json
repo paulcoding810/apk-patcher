@@ -1,13 +1,30 @@
 {
-  "name": "apk_patcher",
-  "version": "1.0.0",
-  "description": "helper to patch apk",
+  "name": "@paulcoding810/apk-patcher",
+  "version": "1.0.2",
+  "description": "CLI tool for patching and modifying Android APK files",
+  "type": "module",
   "main": "index.js",
+  "bin": {
+    "apk-patcher": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "log.js",
+    "config.json",
+    "libs/*"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "fixthebug",
-  "license": "ISC",
+  "keywords": [
+    "apk",
+    "android",
+    "patch",
+    "mitm",
+    "cli"
+  ],
+  "author": "PaulCoding810",
+  "license": "MIT",
   "dependencies": {
     "apk-mitm": "^1.3.0",
     "chalk": "^5.3.0",
@@ -15,5 +32,15 @@
     "execa": "^9.3.1",
     "listr2": "^8.2.4"
   },
-  "type": "module"
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paulcoding810/apk-patcher.git"
+  },
+  "bugs": {
+    "url": "https://github.com/paulcoding810/apk-patcher/issues"
+  },
+  "homepage": "https://github.com/paulcoding810/apk-patcher#readme"
 }

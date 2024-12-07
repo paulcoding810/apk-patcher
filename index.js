@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { applyPatches, observeListr } from "apk-mitm";
 import { Command } from "commander";
 import { execa } from "execa";
@@ -7,7 +9,7 @@ import readline from "node:readline/promises";
 import path from "path";
 import { error, info, log, success } from "./log.js";
 
-const CONFIG_PATH = path.join(process.cwd(), "config.json");
+const CONFIG_PATH = path.join(import.meta.dirname, "config.json");
 
 let config;
 
