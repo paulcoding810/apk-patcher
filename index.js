@@ -23,6 +23,7 @@ const {
   APKEDITOR_PATH,
   APKTOOL_PATH,
   OUTPUT_PATCH_PATH,
+  EDITOR,
 } = config;
 
 const program = new Command();
@@ -148,8 +149,8 @@ program
             },
           },
           {
-            title: "Open in Sublime Text",
-            task: () => execa("subl", [projectDir]),
+            title: "Open in Editor",
+            task: () => execa(EDITOR, [projectDir]),
           },
           {
             title: "Perform first build & install",
