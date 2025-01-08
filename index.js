@@ -223,7 +223,14 @@ async function buildAndInstall() {
     {
       title: "Installing APK",
       task: (ctx) =>
-        execa("adb", ["-s", ctx.device, "install", "-r", distPath]),
+        execa("adb", [
+          "-s",
+          ctx.device,
+          "install",
+          "--bypass-low-target-sdk-block",
+          "-r",
+          distPath,
+        ]),
     },
     {
       title: "Launching app",
@@ -240,8 +247,12 @@ async function buildAndInstall() {
     },
   ]);
 
-  await tasks.run();
-  success("APK installed\n");
+  await tasks
+    .run()
+    .then(() => {
+      success("APK installed\n");
+    })
+    .catch((e) => error(e));
 }
 
 const loop = async () => {
