@@ -3,5 +3,5 @@
   "APKEDITOR_PATH": "libs/APKEditor-1.4.1.jar",
   "APKTOOL_PATH": "libs/apktool_2.9.3.jar",
   "OUTPUT_PATCH_PATH": "patches",
-  "EDITOR" : "subl"
+  "EDITOR" : "code"
 }
