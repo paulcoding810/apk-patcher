@@ -68,7 +68,7 @@ program
 program
   .command("merge")
   .description("Merging slit apk")
-  .argument("<string>", "path to apk")
+  .argument("<xapk-path>", "path to apk")
   .action(async (str) => {
     try {
       await execa("java", ["-jar", APKEDITOR_PATH, "m", "-i", str]);
@@ -81,9 +81,8 @@ program
   });
 
 program
-  .command("loop")
   .description("Building loop")
-  .argument("<string>", "path to apk")
+  .argument("<apk-path>", "path to apk")
   .action(async (str) => {
     const apkPath = str;
 

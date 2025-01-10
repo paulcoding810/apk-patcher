@@ -45,10 +45,10 @@ apk-patcher merge <path-to-apk>
 ### Start Patching Loop
 
 ```bash
-apk-patcher loop <path-to-apk>
+apk-patcher <path-to-apk>
 ```
 
-The loop command will:
+This command will:
 
 1. Decode the APK
 2. Initialize a git repository
