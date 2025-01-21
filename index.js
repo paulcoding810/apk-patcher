@@ -83,9 +83,9 @@ program
 program
   .description("Building loop")
   .argument("<apk-path>", "path to apk")
-  .action(async (str) => {
-    const apkPath = str;
-
+  .option("-r, --no-res", "Do not decode resources.")
+  .option("-s, --no-src", "Do not decode sources.")
+  .action(async (apkPath, options) => {
     if (!fs.existsSync(apkPath)) {
       error(`${apkPath} does not exist!`);
       return 1;
@@ -111,19 +111,19 @@ program
       log("_____________________________");
 
       if (!fs.existsSync(projectDir)) {
+        let listCmd = ["-jar", APKTOOL_PATH];
+        if (!options.res) {
+          listCmd.push("-r");
+        }
+        if (!options.src) {
+          listCmd.push("-s");
+        }
+        listCmd.push("d", apkPath, "-o", projectDir, "--only-main-classes");
+        info(listCmd);
         const tasks = new Listr([
           {
             title: "Decode APK",
-            task: () =>
-              execa("java", [
-                "-jar",
-                APKTOOL_PATH,
-                "d",
-                apkPath,
-                "-o",
-                projectDir,
-                "--only-main-classes",
-              ]),
+            task: () => execa("java", listCmd),
           },
           {
             title: "Init git project",
