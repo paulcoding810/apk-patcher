@@ -7,6 +7,7 @@ import fs from "fs";
 import { Listr } from "listr2";
 import readline from "node:readline/promises";
 import path from "path";
+import { parse_aapt } from "./helpers.js";
 import { error, info, log, success } from "./log.js";
 
 const CONFIG_PATH = path.join(import.meta.dirname, "config.json");
@@ -93,20 +94,15 @@ program
 
     info("get package info");
     try {
-      const { stdout } = await execa("aapt", ["dump", "badging", apkPath]);
-      const regex = /name='(.*?)'.*versionName='(.*?)'/;
-      const match = stdout.match(regex);
-
-      if (match) {
-        packageName = match[1];
-        versionName = match[2];
-        projectDir = `${path.dirname(apkPath)}/${packageName}`;
-        apkName = `${path.basename(apkPath)}`;
-        distPath = `${projectDir}/dist/${apkName}`;
-      } else {
-        throw new Error("Can not parse apk info");
+      try {
+        const { stdout } = await execa("aapt", ["dump", "badging", apkPath]);
+        ({ packageName, versionName, projectDir, apkName, distPath } =
+          parse_aapt(stdout, apkPath));
+      } catch (error) {
+        console.log("Can not parse apk info, try parsing from error...");
+        ({ packageName, versionName, projectDir, apkName, distPath } =
+          parse_aapt(error.toString(), apkPath));
       }
-
       log({ packageName, versionName, projectDir, apkName });
       log("_____________________________");
 
@@ -119,7 +115,6 @@ program
           listCmd.push("-s");
         }
         listCmd.push("d", apkPath, "-o", projectDir, "--only-main-classes");
-        info(listCmd);
         const tasks = new Listr([
           {
             title: "Decode APK",
