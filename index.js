@@ -21,13 +21,23 @@ try {
   process.exit(1);
 }
 
-const {
-  UBER_APK_SIGNER_PATH,
-  APKEDITOR_PATH,
-  APKTOOL_PATH,
-  OUTPUT_PATCH_PATH,
-  EDITOR,
-} = config;
+const { OUTPUT_PATCH_PATH, EDITOR } = config;
+
+const UBER_APK_SIGNER_PATH = path.join(
+  import.meta.dirname,
+  "libs",
+  config.UBER_APK_SIGNER_PATH
+);
+const APKEDITOR_PATH = path.join(
+  import.meta.dirname,
+  "libs",
+  config.APKEDITOR_PATH
+);
+const APKTOOL_PATH = path.join(
+  import.meta.dirname,
+  "libs",
+  config.APKTOOL_PATH
+);
 
 const program = new Command();
 
