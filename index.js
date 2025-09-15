@@ -67,6 +67,24 @@ program
   });
 
 program
+  .command("info")
+  .description("Get apk info")
+  .argument("<apk-path>", "path to apk")
+  .action(async (apkPath) => {
+    try {
+      const { stdout } = await execa("aapt", ["dump", "badging", apkPath]);
+      const result = parse_aapt(stdout, apkPath);
+      log(result);
+    } catch (error) {
+      console.log("Can not parse apk info, try parsing from error...");
+      ({ packageName, versionName, projectDir, apkName, distPath } = parse_aapt(
+        error.toString(),
+        apkPath
+      ));
+    }
+  });
+
+program
   .command("merge")
   .description("Merging slit apk")
   .argument("<xapk-path>", "path to apk")
