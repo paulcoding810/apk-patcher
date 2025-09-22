@@ -154,7 +154,16 @@ program
               await execa("git", ["init"], { cwd: projectDir });
               await fs.promises.writeFile(
                 `${projectDir}/.gitignore`,
-                "/build\n/dist\n.DS_Store"
+                [
+                  "*",
+                  "!AndroidManifest.xml",
+                  "!res/values",
+                  "!smali*/",
+                  "!smali*/**",
+                  "smali/androidx/",
+                  "smali/com/android/",
+                  "smali/com/google/",
+                ].join("\n")
               );
               await execa("git", ["add", "."], { cwd: projectDir });
               await execa("git", ["commit", "-m", "init project"], {
