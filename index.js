@@ -21,7 +21,8 @@ try {
   process.exit(1);
 }
 
-const { OUTPUT_PATCH_PATH, EDITOR } = config;
+const { OUTPUT_PATCH_PATH } = config;
+const EDITOR = process.env.EDITOR ?? config.EDITOR;
 
 const UBER_APK_SIGNER_PATH = path.join(
   import.meta.dirname,
