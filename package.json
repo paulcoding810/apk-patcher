@@ -1,6 +1,6 @@
 {
   "name": "@paulcoding810/apk-patcher",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "CLI tool for patching and modifying Android APK files",
   "type": "module",
   "main": "index.js",
@@ -10,6 +10,7 @@
   "files": [
     "index.js",
     "log.js",
+    "helpers.js",
     "config.json",
     "libs/*"
   ],

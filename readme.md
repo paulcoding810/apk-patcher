@@ -1,82 +1,54 @@
 # APK Patcher CLI
 
+[![npm version](https://img.shields.io/npm/v/@paulcoding810/apk-patcher?color=blue&label=npm)](https://www.npmjs.com/package/@paulcoding810/apk-patcher)
+
 A command-line tool that minimize [APKLab](https://github.com/APKLab/) for patching and modifying Android APK files with MITM capabilities.
 
 ## Installation
 
 ```bash
-npm install @paulcoding810/apk-patcher
-```
-
-## Configuration
-
-Create a `config.json` file in your project root with the following structure:
-
-```json
-{
-  "UBER_APK_SIGNER_PATH": "/path/to/uber-apk-signer.jar",
-  "APKEDITOR_PATH": "/path/to/apkeditor.jar",
-  "APKTOOL_PATH": "/path/to/apktool.jar",
-  "OUTPUT_PATCH_PATH": "/path/to/patches/output",
-  "EDITOR": "code"  // or any preferred text editor
-}
+npm install -g @paulcoding810/apk-patcher
 ```
 
 ## Usage
 
-### View Current Configuration
+### Show help menu
 
 ```bash
-apk-patcher config
+apk-patcher --help
 ```
 
-### Edit Configuration
+### Patching Loop
 
-```bash
-apk-patcher --edit-config
-```
-
-### Merge Split APK
-
-```bash
-apk-patcher merge <path-to-apk>
-```
-
-### Start Patching Loop
-
-```bash
-apk-patcher <path-to-apk>
-```
-
-This command will:
+Running `apk-patcher <path-to-apk>` will:
 
 1. Decode the APK
 2. Initialize a git repository
 3. Apply MITM patches
 4. Open the project in your configured editor
 5. Start a build-test loop where you can:
-   - Build and install the modified APK (enter 'y')
-   - Save changes and generate patch file (enter 'n')
-   - Quit without saving (enter 'q')
+   - Build and install the modified APK (`y`)
+   - Save changes and generate patch file (`n`)
+   - Quit without saving (`q`)
 
 ## Features
 
-- APK decompilation and recompilation
+- APK decompilation & recompilation
 - Automatic MITM patching
 - Git integration for tracking changes
 - Automatic APK signing
 - Direct installation to connected Android device
 - Patch file generation
-- Build and test loop for rapid development
+- Build & test loop for rapid development
 
 ## Working Directory Structure
 
-When working with an APK, the tool creates the following structure:
+When working with an APK, the tool creates:
 
 ```
 patches/
-    └── [package-name]/
-        └── [version].patch
+  └── [package-name]/
+      └── [version].patch
 ```
 
 ## Notes
