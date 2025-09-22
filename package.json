@@ -10,6 +10,7 @@
   "files": [
     "index.js",
     "log.js",
+    "helpers.js",
     "config.json",
     "libs/*"
   ],
